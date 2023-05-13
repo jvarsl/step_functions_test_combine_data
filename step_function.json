@@ -1,0 +1,89 @@
+{
+  "Comment": "A description of my state machine",
+  "StartAt": "Is old enough",
+  "States": {
+    "Is old enough": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Age",
+          "NumericLessThan": 18,
+          "Next": "Fail"
+        }
+      ],
+      "Default": "Parallel"
+    },
+    "Fail": {
+      "Type": "Fail"
+    },
+    "Parallel": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "Lambda FavouriteColor",
+          "States": {
+            "Lambda FavouriteColor": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "arn:aws:lambda:eu-central-1:488803305670:function:FavouriteColor:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Lambda HelloName",
+          "States": {
+            "Lambda HelloName": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "arn:aws:lambda:eu-central-1:488803305670:function:HelloName:$LATEST"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 2,
+                  "MaxAttempts": 6,
+                  "BackoffRate": 2
+                }
+              ],
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "Success",
+      "ResultSelector": {
+        "FavouriteColor.$": "$[0]",
+        "HelloText.$": "$[1]"
+      }
+    },
+    "Success": {
+      "Type": "Succeed"
+    }
+  }
+}
